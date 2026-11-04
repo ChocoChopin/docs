@@ -1,0 +1,15 @@
+{
+  "darknessSunAltitudeDegrees" : -18,
+  "latitude" : 38.9072,
+  "levels" : {
+    "darkness" : 4,
+    "eveningEnd" : 2,
+    "eveningStart" : 4,
+    "midnight" : 1,
+    "solarNoon" : 9,
+    "sunrise" : 4
+  },
+  "longitude" : -77.0369,
+  "timeZone" : "America/New_York",
+  "updateIntervalSeconds" : 30
+}
