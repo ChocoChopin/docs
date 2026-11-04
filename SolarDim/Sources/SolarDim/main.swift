@@ -18,7 +18,7 @@ func printSchedule(_ configuration: SolarDimConfiguration, fullDay: Bool) throws
         for i in 0...48 {
             let date = start.addingTimeInterval(end.timeIntervalSince(start) * Double(i) / 48)
             print(String(format: "%@ -> %.3f / 16", formatter.string(from: date),
-                         try SolarSchedule.level(at: date, config: configuration)))
+                         SolarSchedule.level(at: date, in: day)))
         }
     }
 }
@@ -140,6 +140,7 @@ private enum LoginAgent {
 @MainActor
 private final class SolarDimApp: NSObject, NSApplicationDelegate {
     private var config = SolarDimConfiguration()
+    private var scheduleCache = DailyScheduleCache(config: SolarDimConfiguration())
     private var configProblem: String?
     private var statusItem: NSStatusItem!
     private var statusLine: NSMenuItem!
@@ -158,7 +159,10 @@ private final class SolarDimApp: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        do { config = try ConfigurationStore.loadOrCreate() }
+        do {
+            config = try ConfigurationStore.loadOrCreate()
+            scheduleCache.replaceConfiguration(config)
+        }
         catch { configProblem = error.localizedDescription }
         do { controller = try BuiltInBrightness() }
         catch { lastError = error.localizedDescription }
@@ -254,7 +258,7 @@ private final class SolarDimApp: NSObject, NSApplicationDelegate {
     }
 
     private func solarTimesText() -> String {
-        guard let day = try? SolarSchedule.day(containing: Date(), config: config) else {
+        guard let day = try? scheduleCache.day(containing: Date()) else {
             return "Solar times unavailable (check configuration)"
         }
         let formatter = DateFormatter()
@@ -302,7 +306,7 @@ private final class SolarDimApp: NSObject, NSApplicationDelegate {
             }
         }
         do {
-            let level = try SolarSchedule.level(at: effectiveDate, config: config)
+            let level = try scheduleCache.level(at: effectiveDate)
             guard let controller = controller else {
                 throw DisplayError.unavailable("display controller is not initialized")
             }
@@ -319,6 +323,7 @@ private final class SolarDimApp: NSObject, NSApplicationDelegate {
         do {
             try ConfigurationStore.save(newConfig)
             config = newConfig
+            scheduleCache.replaceConfiguration(newConfig)
             configProblem = nil
             lastError = nil
             resetTimer()
@@ -406,6 +411,7 @@ private final class SolarDimApp: NSObject, NSApplicationDelegate {
         do {
             let next = try ConfigurationStore.loadOrCreate()
             config = next
+            scheduleCache.replaceConfiguration(next)
             configProblem = nil
             lastError = nil
             resetTimer()
