@@ -197,9 +197,9 @@ public enum SolarSchedule {
         return SolarDay(sunrise: sunrise, solarNoon: noon, darkness: darkness, points: points)
     }
 
-    /// Piecewise-linear interpolation across real elapsed time; returns a fractional key step.
-    public static func level(at date: Date, config: SolarDimConfiguration) throws -> Double {
-        let points = try day(containing: date, config: config).points
+    /// Interpolates between precalculated anchors. No solar math happens here.
+    public static func level(at date: Date, in schedule: SolarDay) -> Double {
+        let points = schedule.points
         for index in 0..<(points.count - 1) {
             let start = points[index]
             let end = points[index + 1]
@@ -208,7 +208,12 @@ public enum SolarSchedule {
                 return start.level + (end.level - start.level) * progress
             }
         }
-        return config.levels.midnight
+        return points.last?.level ?? 0
+    }
+
+    /// Convenience for one-off callers; running app uses DailyScheduleCache instead.
+    public static func level(at date: Date, config: SolarDimConfiguration) throws -> Double {
+        level(at: date, in: try day(containing: date, config: config))
     }
 }
 
