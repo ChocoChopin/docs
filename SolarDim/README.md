@@ -2,7 +2,7 @@
 
 A tiny, dependency-free native macOS menu-bar app that automatically sets an iMac's **actual panel brightness** by the sun. No subscription, network, API key, overlays, or external packages.
 
-**Status:** The scheduling engine passed eight automated tests on Linux. The macOS AppKit UI and hardware brightness backend still need to be compiled and verified on the iMac by Astra.
+**Status:** The scheduling engine and daily cache pass 14 automated tests on Linux. The macOS AppKit UI and hardware brightness backend still need to be compiled and verified on the iMac by Astra.
 
 ## Default schedule — 0–16 brightness scale
 
@@ -16,7 +16,9 @@ A tiny, dependency-free native macOS menu-bar app that automatically sets an iMa
 | 11:30 p.m. | 2 |
 | Next midnight | 1 |
 
-Linear interpolation between anchors; updates every 30 seconds. Brightness can be fractional between whole key steps. Between midnight and sunrise it rises from 1 to 4. Between sunrise and true solar noon it rises to 9. At full astronomical darkness it reaches 4, holds until 11 p.m., then steps down gradually as specified. Times are calculated entirely offline from NOAA's solar equations, with timezone and daylight-saving transitions handled. Initial position: **Washington, DC**, latitude 38.9072, longitude −77.0369, timezone America/New_York.
+**Solar calculations happen at startup and once per day at 4:00 a.m. local time.** At refresh, SolarDim caches both today's and tomorrow's solar anchors, so midnight does not trigger a new solar calculation. Every 30-second brightness tick only interpolates the already-cached values and writes the screen brightness. If the Mac sleeps past 4 a.m., the first tick after wake refreshes the cache. Editing or reloading configuration also refreshes it immediately.
+
+Linear interpolation between anchors; updates brightness every 30 seconds. Brightness can be fractional between whole key steps. Between midnight and sunrise it rises from 1 to 4. Between sunrise and true solar noon it rises to 9. At full astronomical darkness it reaches 4, holds until 11 p.m., then steps down gradually as specified. Times are calculated entirely offline from NOAA's solar equations, with timezone and daylight-saving transitions handled. Initial position: **Washington, DC**, latitude 38.9072, longitude −77.0369, timezone America/New_York.
 
 ## Building on macOS (requires Swift / Xcode Command Line Tools)
 
@@ -63,12 +65,13 @@ Uses CGGetOnlineDisplayList and CGDisplayIsBuiltin to target **only the iMac int
 
 ## Astra acceptance checks
 
-1. On iMac, run the Swift tests, then compile the app bundle using the build script. Fix any macOS SDK-specific issues.
+1. On iMac, run the Swift tests (14 scheduling/cache tests), then compile the app bundle using the build script. Fix any macOS SDK-specific issues.
 2. Run both dry-run commands and verify solar noon, sunrise and darkness for Washington, DC.
 3. Open the app; confirm the native menu, configuration creation and an actual backlight adjustment of the built-in screen.
 4. Run the 24-second simulation and verify smooth transitions, cancellation and the return to current-time brightness.
 5. Check menu edits, JSON persistence/reload, pause/resume and Start at Login.
 6. Make sure no other brightness automation is competing and only one SolarDim instance is running.
+7. Verify one refresh batch at 4 a.m., no solar calculation at midnight or on 30-second polls, and a catch-up refresh after sleep.
 
 ## Astronomical reference
 
